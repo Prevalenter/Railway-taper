@@ -36,12 +36,40 @@ class RailwaySensorDataset(Dataset):
 
 
 if __name__=="__main__":
+    from scipy import signal
+    from scipy.fftpack import fft, ifft, fftfreq
+    import matplotlib.pyplot as plt
+
     dataset = RailwaySensorDataset()
 
-    dataloader = DataLoader(dataset, batch_size=2)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
 
     for item in dataloader:
-        print(item)
+        print(item['x'].shape, item['x'][0, :, 0].shape)
 
+        # plt.plot(item['x'][0, :, 0])
+        # plt.show()
+        plt.figure(figsize=(12, 6))
+
+        data = item['x'][0, :, 0]
+
+        plt.subplot(3, 1, 1)
+        plt.plot(data)
+
+        plt.subplot(3, 1, 2)
+        F = fft(data.numpy())
+        f = fftfreq(data.shape[0], 10)
+        mask = np.where(f>0)
+        plt.plot(f[mask], np.abs(F[mask]))
+        # plt.show()
+
+        plt.subplot(3, 1, 3)
+        f, t, Sxx = signal.spectrogram(data, 10, nperseg=32)
+        print(f.shape, t.shape, Sxx.shape)
+        plt.pcolormesh(t, f, Sxx)
+        plt.colorbar()
+        plt.show()
+
+        break
 
 

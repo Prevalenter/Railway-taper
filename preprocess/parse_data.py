@@ -6,7 +6,7 @@ import os
 
 def get_data(root='../data/'):
 	fn_list = os.listdir(root)
-
+	# print(fn_list)
 	usecols = (1, 2, 3, 4,
 	           5, 6, 7, 8)
 
@@ -14,12 +14,12 @@ def get_data(root='../data/'):
 	for fn in fn_list:
 		if fn in ['others', '.DS_Store']:
 			continue
-
-		data_csv = pd.read_csv(f'../data/{fn}', encoding='gb18030', usecols=usecols)
+		# print(fn)
+		data_csv = pd.read_csv(f'{root}/{fn}', encoding='gb18030', usecols=usecols)
 		data = np.array(data_csv)
 
-		data_wheel1 = data[:, [0, 1, 6, 7]]
-		data_wheel2 = data[:, [2, 3, 4, 5]]
+		data_wheel = data[:, [0, 1, 6, 7, 2, 3, 4, 5]]
+		# data_wheel2 = data[:, []]
 
 		dis, level, dir = fn[:-4].split('-')
 		dis = int(dis)
@@ -27,9 +27,9 @@ def get_data(root='../data/'):
 		# print(data.shape, data_wheel1.shape, data_wheel2.shape)
 		# print(dis, level, dir, fn[:-4])
 
-		data_input[fn[:-4]] = [data, data_wheel1, data_wheel2]
+		data_input[fn[:-4]] = data_wheel
 
-	data_lma = pd.read_csv('../data/others/LMA.csv', encoding='utf-8',usecols=(0,1,2,3,4))
+	data_lma = pd.read_csv(f'{root}/others/LMA.csv', encoding='utf-8',usecols=(0,1,2,3,4))
 	data_lma = np.array(data_lma)
 
 	# print(data_lma.shape)
