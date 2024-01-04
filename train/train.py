@@ -43,10 +43,12 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=4, help='batch size in training')
     parser.add_argument('--shuffle', type=bool, default=True, help='shuffle the points')
 
-    # resnet
-    parser.add_argument('--model', default='resnet', help='model name [default: mmn]')
+    # resnet ast_pytorch
+    parser.add_argument('--model', default='ast_pytorch', help='model name [default: mmn]')
     parser.add_argument('--epoch', default=300, type=int, help='number of epoch in training')
-    parser.add_argument('--learning_rate', default=0.0001, type=float, help='learning rate in training')
+
+    # 0.0001
+    parser.add_argument('--learning_rate', default=0.008, type=float, help='learning rate in training')
     parser.add_argument('--seed', type=int, default=1, help='Point Number')
     parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer for training')
 
@@ -106,7 +108,7 @@ def test(model, loader, exp_dir, criterion, log_string, cur_epoch):
 
 
     # log_string(f'Cls correct [{cls_mean.mean()}, {best_cls}] {cls_mean}')
-    log_string(f'RMSE for MSE: [{mse_cur.mean()}, {best_mse}] {mse_cur}')
+    log_string(f'MSE: [{mse_cur.mean()}/ {best_mse}] {mse_cur}')
 
     # instance_acc = np.mean(mean_correct)
     # instance_acc = rmse_r_mean.mean()
@@ -127,7 +129,7 @@ def main(args):
     timestr = str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
     exp_dir = Path('../log/')
     exp_dir.mkdir(exist_ok=True)
-    exp_dir = exp_dir.joinpath('resnet')
+    exp_dir = exp_dir.joinpath(args.model)
     exp_dir.mkdir(exist_ok=True)
     if args.log_dir is None:
         exp_dir = exp_dir.joinpath(timestr)
@@ -213,21 +215,15 @@ def main(args):
         for batch_id, item in tqdm(enumerate(trainDataLoader, 0), total=len(trainDataLoader), smoothing=0.9):
 
             optimizer.zero_grad()
-
             x, y = item
 
             if not args.use_cpu:
                 x, y = x.cuda().float(), y.cuda().float()
 
-            # src_kp, tgt_kp, src_kp_trans, src_plane, tgt_plane, \
-            #     src_plane_trans, pred_cls, rotation_ab_pred, translation_ab_pred = \
-            #     classifier(src, tgt, src_node, tgt_node, r, t, global_epoch)
             pred = classifier(x)
 
+            loss = criterion(y.float(), pred.float())
 
-            # r, t
-            loss = criterion(y, pred)
-            # print(loss.item())
             mean_correct.append(loss.item())
             loss.backward()
             optimizer.step()
@@ -244,22 +240,28 @@ def main(args):
             if (best_instance_acc >= instance_acc):
                 best_instance_acc = instance_acc
                 best_epoch = epoch + 1
-        #
+
+                # print('-'*50)
+                # print(y)
+                # print(pred)
+                # print('-'*50)
+
+
         #     log_string('Test Instance Accuracy: %f' % (instance_acc))
         #     log_string('Best Instance Accuracy: %f' % (best_instance_acc))
         #
-        #     if (best_instance_acc >= instance_acc):
-        #         logger.info('Save model...')
-        #         savepath = str(checkpoints_dir) + '/best_model.pth'
-        #         log_string('Saving at %s' % savepath)
-        #         state = {
-        #             'epoch': best_epoch,
-        #             'instance_acc': instance_acc,
-        #             'model_state_dict': classifier.state_dict(),
-        #             'optimizer_state_dict': optimizer.state_dict(),
-        #         }
-        #         torch.save(state, savepath)
-        #     global_epoch += 1
+            # if (best_instance_acc >= instance_acc):
+                logger.info('Save model...')
+                savepath = str(checkpoints_dir) + '/best_model.pth'
+                log_string('Saving at %s' % savepath)
+                state = {
+                    'epoch': best_epoch,
+                    'instance_acc': instance_acc,
+                    'model_state_dict': classifier.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                }
+                torch.save(state, savepath)
+            global_epoch += 1
 
     logger.info('End of training...')
 

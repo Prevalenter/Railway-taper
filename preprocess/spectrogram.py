@@ -27,24 +27,24 @@ if __name__=="__main__":
             np.save(f'../data/spectrogram/{i}-{k}.npy', Sxx)
 
 
-            # plt.subplot(4, 1, 1)
-            # plt.plot(data_i)
-            #
-            # plt.subplot(4, 1, 2)
-            # F = fft(data_i)
-            # freq = fftfreq(data_i.shape[0], 10)
-            # mask = np.where(freq > 0)
-            # plt.plot(freq[mask], np.abs(F[mask]))
-            #
-            # plt.subplot(4, 1, 3)
-            #
-            # plt.imshow(Sxx)
-            # plt.colorbar()
-            #
-            # plt.subplot(4, 1, 4)
-            # plt.pcolormesh(t, f, Sxx)
-            # plt.colorbar()
-            # plt.show()
+            plt.subplot(4, 1, 1)
+            plt.plot(data_i)
+
+            plt.subplot(4, 1, 2)
+            F = fft(data_i)
+            freq = fftfreq(data_i.shape[0], 10)
+            mask = np.where(freq > 0)
+            plt.plot(freq[mask], np.abs(F[mask]))
+
+            plt.subplot(4, 1, 3)
+
+            plt.imshow(Sxx)
+            plt.colorbar()
+
+            plt.subplot(4, 1, 4)
+            plt.pcolormesh(t, f, Sxx)
+            plt.colorbar()
+            plt.show()
 
 
 
