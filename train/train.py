@@ -24,7 +24,7 @@ from tqdm import tqdm
 # sys.path.append(os.path.join(ROOT_DIR, 'model'))
 sys.path.append( '../model')
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname( os.path.abspath(__file__) )
 ROOT_DIR = BASE_DIR
 # print(os.path.join(ROOT_DIR, 'model'))
 sys.path.append(os.path.join(ROOT_DIR, 'model'))
@@ -45,7 +45,7 @@ def parse_args():
 
     # resnet ast_pytorch
     parser.add_argument('--model', default='ast_pytorch', help='model name [default: mmn]')
-    parser.add_argument('--epoch', default=300, type=int, help='number of epoch in training')
+    parser.add_argument('--epoch', default=100, type=int, help='number of epoch in training')
 
     # 0.0001
     parser.add_argument('--learning_rate', default=0.008, type=float, help='learning rate in training')
@@ -89,7 +89,7 @@ def test(model, loader, exp_dir, criterion, log_string, cur_epoch):
         pred = classifier(x)
 
 
-        print(y.shape, pred.shape)
+        # print(y.shape, pred.shape)
         # r, t
         loss = criterion(y, pred)
 
@@ -198,11 +198,13 @@ def main(args):
     else:
         optimizer = torch.optim.SGD(classifier.parameters(), lr=0.01, momentum=0.9)
 
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+    
     global_epoch = 0
     global_step = 0
     best_instance_acc = 1000.0
     best_class_acc = 0.0
+
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 
     '''TRANING'''
     logger.info('Start training...')
@@ -211,7 +213,7 @@ def main(args):
         mean_correct = []
         classifier = classifier.train()
 
-        scheduler.step()
+
         for batch_id, item in tqdm(enumerate(trainDataLoader, 0), total=len(trainDataLoader), smoothing=0.9):
 
             optimizer.zero_grad()
@@ -227,7 +229,10 @@ def main(args):
             mean_correct.append(loss.item())
             loss.backward()
             optimizer.step()
+            # scheduler.step()
             global_step += 1
+            
+
             # break
 
         train_instance_acc = np.mean(mean_correct)

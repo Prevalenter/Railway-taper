@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument('--model', default='ast_pytorch', help='model name [default: mmn]')
     parser.add_argument('--epoch', default=300, type=int, help='number of epoch in training')
 
-    parser.add_argument('--time_str', default='2024-01-05_01-56', help='time string')
+    parser.add_argument('--time_str', default='2024-01-05_02-58', help='time string')
 
     # 0.0001
     parser.add_argument('--learning_rate', default=0.008, type=float, help='learning rate in training')
@@ -91,6 +91,7 @@ def test(model, loader, exp_dir, criterion, log_string, cur_epoch):
 
         pred = classifier(x)
         print('-'*40)
+        print(y.shape, pred.shape)
         print(y)
         print(pred)
         print('-'*40)
@@ -164,7 +165,7 @@ def main(args):
     trainDataLoader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
                                                   shuffle=True, num_workers=10, drop_last=True)
     testDataLoader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
-                                                 shuffle=False, num_workers=10)
+                                                 shuffle=True, num_workers=10)
 
     '''MODEL LOADING'''
     # num_class = args.num_category
@@ -185,7 +186,6 @@ def main(args):
     checkpoint = torch.load(str(exp_dir) + '/checkpoints/best_model.pth')
     start_epoch = checkpoint['epoch']
     classifier.load_state_dict(checkpoint['model_state_dict'])
-    # log_string('Use pretrain model')
 
     # try:
     #

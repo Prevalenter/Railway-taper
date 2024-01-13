@@ -54,7 +54,7 @@ class RailwaySensorDataset(Dataset):
         for fn in fn_list:
             wheel_id, dis, level, dir = fn[:-4].split('-')
             if int(dis) in self.dis_list:
-                print(fn)
+                # print(fn)
                 data_y = np.load(f'{root}/{wheel_id}-{dis}-{level}-Y.npy')
                 data_z = np.load(f'{root}/{wheel_id}-{dis}-{level}-Z.npy')
                 data = np.array([data_y, data_z])
@@ -70,13 +70,15 @@ class RailwaySensorDataset(Dataset):
         self.data_list = data_list
         self.gt_list = gt_list
 
+        self.data_len = len(self.data_list)
     def __len__(self):
-        return len(self.dis_list)
+        # print( 'sample index: ', len(self.data_list), len(self.gt_list) )
+        # return len(self.dis_list)
+        return self.data_len
+
 
     def __getitem__(self, idx):
-
-        # return image, label
-
+        # print(idx)
         return self.data_list[idx], self.gt_list[idx]
 
 
@@ -87,7 +89,9 @@ if __name__=="__main__":
 
     dataset = RailwaySensorDataset()
     dataset_test = RailwaySensorDataset(is_train=False)
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+    dataloader = DataLoader(dataset_test, batch_size=4)
+
+    dataset_test.__getitem__(100)
 
     for item in dataloader:
         # print(item['data'].shape, item['gt'].shape)
