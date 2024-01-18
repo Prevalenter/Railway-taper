@@ -81,7 +81,8 @@ def test(model, loader, exp_dir, criterion, log_string, cur_epoch):
 
     for batch_id, item in tqdm(enumerate(loader, 0), total=len(loader), smoothing=0.9):
 
-        x, y = item
+        # x, y = item
+        x, y = item['spect'], item['gt']
 
         if not args.use_cpu:
             x, y = x.cuda().float(), y.cuda().float()
@@ -217,7 +218,7 @@ def main(args):
         for batch_id, item in tqdm(enumerate(trainDataLoader, 0), total=len(trainDataLoader), smoothing=0.9):
 
             optimizer.zero_grad()
-            x, y = item
+            x, y = item['spect'], item['gt']
 
             if not args.use_cpu:
                 x, y = x.cuda().float(), y.cuda().float()

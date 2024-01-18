@@ -14,9 +14,9 @@ from preprocess.parse_data import get_data
 
 class RailwaySensorDataset(Dataset):
     def __init__(self, is_train=True):
-        root = '../data/spectrogram'
+        root = '../data'
         dis_list = []
-        fn_list = os.listdir(root)
+        fn_list = os.listdir(root+'/spectrogram')
         for fn in fn_list:
             wheel_id, dis, level, dir = fn[:-4].split('-')
             # print(fn, wheel_id, dis, level, dir)
@@ -50,16 +50,23 @@ class RailwaySensorDataset(Dataset):
         # print(self.lma_dict)
 
         data_list = []
+        data_fft_list = []
         gt_list = []
         for fn in fn_list:
             wheel_id, dis, level, dir = fn[:-4].split('-')
             if int(dis) in self.dis_list:
                 # print(fn)
-                data_y = np.load(f'{root}/{wheel_id}-{dis}-{level}-Y.npy')
-                data_z = np.load(f'{root}/{wheel_id}-{dis}-{level}-Z.npy')
+                data_y = np.load(f'{root}/spectrogram/{wheel_id}-{dis}-{level}-Y.npy')
+                data_z = np.load(f'{root}/spectrogram/{wheel_id}-{dis}-{level}-Z.npy')
                 data = np.array([data_y, data_z])
+
+                data_fft_y = np.load(f'{root}/fft/{wheel_id}-{dis}-{level}-Y.npy')
+                data_fft_z = np.load(f'{root}/fft/{wheel_id}-{dis}-{level}-Z.npy')
+                data_fft = np.array([data_fft_y, data_fft_z])
+
                 # print(fn, data.shape)
                 data_list.append(data)
+                data_fft_list.append(data_fft)
 
                 if int(wheel_id)<4:
                     gt_list.append(lma_dict[int(dis)][[0, 2]])
@@ -69,6 +76,7 @@ class RailwaySensorDataset(Dataset):
                 # gt_list.append()
         self.data_list = data_list
         self.gt_list = gt_list
+        self.data_fft_list = data_fft_list
 
         self.data_len = len(self.data_list)
     def __len__(self):
@@ -79,7 +87,9 @@ class RailwaySensorDataset(Dataset):
 
     def __getitem__(self, idx):
         # print(idx)
-        return self.data_list[idx], self.gt_list[idx]
+        return {"spect": self.data_list[idx],
+                "fft": self.data_fft_list[idx],
+                "gt": self.gt_list[idx]}
 
 
 if __name__=="__main__":
@@ -95,5 +105,5 @@ if __name__=="__main__":
 
     for item in dataloader:
         # print(item['data'].shape, item['gt'].shape)
-        print(item[0].shape, item[1].shape)
+        print(item['spect'].shape, item['fft'].shape, item['gt'].shape)
 
