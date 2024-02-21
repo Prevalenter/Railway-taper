@@ -202,7 +202,12 @@ class ASTModel(nn.Module):
 class get_model(nn.Module):
     def __init__(self, args):
         super(get_model, self).__init__()
-        self.model = ASTModel(model_size='tiny224', input_tdim=17, input_fdim=71, label_dim=2)
+        # self.model = ASTModel(model_size='base384', input_tdim=17, input_fdim=71, label_dim=1)
+        self.model = ASTModel(label_dim = 1, fstride = args.ft_stride, tstride = args.ft_stride,
+                              input_fdim = 71, input_tdim = 17,
+                              imagenet_pretrain = True, audioset_pretrain = False,
+                              model_size = args.model_size, verbose = True)
+
 
     def forward(self, *input):
         return self.model(*input)

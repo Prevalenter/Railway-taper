@@ -81,7 +81,7 @@ class BottleNeck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, num_block, in_channels=2, num_classes=2):
+    def __init__(self, block, num_block, in_channels=2, num_classes=1):
         super().__init__()
 
         self.in_channels = 64
@@ -165,7 +165,7 @@ def resnet152():
 class get_model(nn.Module):
     def __init__(self, args):
         super(get_model, self).__init__()
-        self.model = resnet50()
+        self.model = resnet101()
 
     def forward(self, *input):
         return self.model(*input)

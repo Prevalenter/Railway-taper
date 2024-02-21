@@ -43,9 +43,19 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=4, help='batch size in training')
     parser.add_argument('--shuffle', type=bool, default=True, help='shuffle the points')
 
+    # [:, is_taper]
+    parser.add_argument('--is_taper', type=int, default=0, help='shuffle the points')
+
     # resnet ast_pytorch
     parser.add_argument('--model', default='ast_pytorch', help='model name [default: mmn]')
-    parser.add_argument('--epoch', default=100, type=int, help='number of epoch in training')
+    parser.add_argument('--epoch', default=500, type=int, help='number of epoch in training')
+
+    # [tiny224, small224, base224, base384]
+    parser.add_argument('--model_size', default='tiny224', help='model_size')
+    # ft_stride
+    parser.add_argument('--ft_stride', default=10, type=int, help='fstride and tstride')
+    parser.add_argument('--imagenet_pretrain', default=True, type=bool, help='imagenet_pretrain')
+    parser.add_argument('--audioset_pretrain', default=False, type=bool, help='imagenet_pretrain')
 
     # 0.0001
     parser.add_argument('--learning_rate', default=0.008, type=float, help='learning rate in training')
@@ -71,18 +81,21 @@ def calcu_metric(gt, pred):
     return mse, mae
 
 
-def test(model, loader, exp_dir, criterion, log_string, cur_epoch):
+def test(model, loader, exp_dir, criterion, log_string, cur_epoch, is_taper):
     # global best_cls, best_r, best_t
     global best_mse
     mean_correct = []
 
     classifier = model.eval()
-    mse_dict = {i: [] for i in range(2)}
+    # mse_dict = {is_taper: [] for i in range(1)}
 
     for batch_id, item in tqdm(enumerate(loader, 0), total=len(loader), smoothing=0.9):
 
         # x, y = item
-        x, y = item['spect'], item['gt']
+        x, y = item['spect'], item['gt'][:, [is_taper]]
+
+
+        # print(x.shape, y.shape)
 
         if not args.use_cpu:
             x, y = x.cuda().float(), y.cuda().float()
@@ -94,22 +107,23 @@ def test(model, loader, exp_dir, criterion, log_string, cur_epoch):
         # r, t
         loss = criterion(y, pred)
 
-        for i in range(2):
-            mse_dict[i].append( criterion(y[:, i], pred[:, i]).cuda().float().cpu() )
+        # for i in range(2):
+        # mse_dict[is_taper].append( criterion(y[:, 0], pred[:, 0]).cuda().float().cpu() )
+        mean_correct.append(criterion(y[:, 0], pred[:, 0]).cuda().float().cpu())
 
-    mse_cur = []
-    for i in range(2):
-        mse_cur.append(np.array(mse_dict[i]).mean())
-        print( i, mse_cur[-1] )
+    # mse_cur = []
+    # for i in range(2):
+    #     mse_cur.append(np.array(mse_dict[i]).mean())
+    #     print( i, mse_cur[-1] )
 
-    mse_cur = np.array(mse_cur)
+    mse_cur = np.array(mean_correct).mean()
 
     # best_cls = np.max([cls_mean.mean(), best_cls])
-    best_mse = np.min([mse_cur.mean(), best_mse])
+    best_mse = np.min([mse_cur, best_mse])
 
 
     # log_string(f'Cls correct [{cls_mean.mean()}, {best_cls}] {cls_mean}')
-    log_string(f'MSE: [{mse_cur.mean()}/ {best_mse}] {mse_cur}')
+    log_string(f'MSE: [{mse_cur}/ {best_mse}] ')
 
     # instance_acc = np.mean(mean_correct)
     # instance_acc = rmse_r_mean.mean()
@@ -218,13 +232,13 @@ def main(args):
         for batch_id, item in tqdm(enumerate(trainDataLoader, 0), total=len(trainDataLoader), smoothing=0.9):
 
             optimizer.zero_grad()
-            x, y = item['spect'], item['gt']
+            x, y = item['spect'], item['gt'][:, [args.is_taper]]
 
             if not args.use_cpu:
                 x, y = x.cuda().float(), y.cuda().float()
 
             pred = classifier(x)
-
+            # print(x.shape, y.shape, pred.shape)
             loss = criterion(y.float(), pred.float())
 
             mean_correct.append(loss.item())
@@ -232,16 +246,13 @@ def main(args):
             optimizer.step()
             # scheduler.step()
             global_step += 1
-            
-
-            # break
 
         train_instance_acc = np.mean(mean_correct)
         log_string('Train Instance Accuracy: %f' % train_instance_acc)
 
-
         with torch.no_grad():
-            instance_acc = test(classifier.eval(), testDataLoader, exp_dir, criterion, log_string, global_epoch)
+            instance_acc = test(classifier.eval(), testDataLoader, exp_dir,
+                                criterion, log_string, global_epoch, args.is_taper)
         #     best_instance_acc
             if (best_instance_acc >= instance_acc):
                 best_instance_acc = instance_acc
@@ -251,7 +262,6 @@ def main(args):
                 # print(y)
                 # print(pred)
                 # print('-'*50)
-
 
         #     log_string('Test Instance Accuracy: %f' % (instance_acc))
         #     log_string('Best Instance Accuracy: %f' % (best_instance_acc))
