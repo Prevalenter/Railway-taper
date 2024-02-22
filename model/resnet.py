@@ -165,7 +165,7 @@ def resnet152():
 class get_model(nn.Module):
     def __init__(self, args):
         super(get_model, self).__init__()
-        self.model = resnet101()
+        self.model = resnet152()
 
     def forward(self, *input):
         return self.model(*input)

@@ -5,6 +5,8 @@ Date: Nov 2019
 
 import os
 import sys
+
+import matplotlib.pyplot as plt
 import torch
 import numpy as np
 
@@ -16,7 +18,8 @@ import importlib
 import shutil
 import argparse
 from preprocess.dataloder import RailwaySensorDataset
-
+from sklearn.metrics import mean_squared_error
+from scipy.stats import pearsonr
 from pathlib import Path
 from tqdm import tqdm
 
@@ -47,7 +50,15 @@ def parse_args():
     parser.add_argument('--model', default='ast_pytorch', help='model name [default: mmn]')
     parser.add_argument('--epoch', default=300, type=int, help='number of epoch in training')
 
+    parser.add_argument('--is_taper', type=int, default=0, help='shuffle the points')
+
     parser.add_argument('--time_str', default='2024-01-05_02-58', help='time string')
+
+    parser.add_argument('--model_size', default='tiny224', help='model_size')
+    # ft_stride
+    parser.add_argument('--ft_stride', default=10, type=int, help='fstride and tstride')
+    parser.add_argument('--imagenet_pretrain', default=True, type=bool, help='imagenet_pretrain')
+    parser.add_argument('--audioset_pretrain', default=False, type=bool, help='imagenet_pretrain')
 
     # 0.0001
     parser.add_argument('--learning_rate', default=0.008, type=float, help='learning rate in training')
@@ -74,54 +85,36 @@ def calcu_metric(gt, pred):
     return mse, mae
 
 
-def test(model, loader, exp_dir, criterion, log_string, cur_epoch):
+# def test(model, loader, exp_dir, criterion, log_string, cur_epoch):
+def test(model, loader, exp_dir, criterion, log_string, cur_epoch, is_taper):
     # global best_cls, best_r, best_t
     global best_mse
     mean_correct = []
 
     classifier = model.eval()
-    mse_dict = {i: [] for i in range(2)}
+    # mse_dict = {i: [] for i in range(2)}
+
+    pred_list = []
+    y_list = []
 
     for batch_id, item in tqdm(enumerate(loader, 0), total=len(loader), smoothing=0.9):
 
-        x, y = item
+        # x, y = item
+        x, y = item['spect'], item['gt'][:, [is_taper]]
 
         if not args.use_cpu:
             x, y = x.cuda().float(), y.cuda().float()
 
         pred = classifier(x)
-        print('-'*40)
-        print(y.shape, pred.shape)
-        print(y)
-        print(pred)
-        print('-'*40)
-        print('\n')
-        # r, t
-        loss = criterion(y, pred)
+        y_list.append(y[:, 0].float().cpu().numpy())
+        pred_list.append(pred[:, 0].float().cpu().numpy())
 
-        for i in range(2):
-            mse_dict[i].append( criterion(y[:, i], pred[:, i]).cuda().float().cpu() )
-
-    mse_cur = []
-    for i in range(2):
-        mse_cur.append(np.array(mse_dict[i]).mean())
-        print( i, mse_cur[-1] )
-
-    mse_cur = np.array(mse_cur)
-
-    # best_cls = np.max([cls_mean.mean(), best_cls])
-    best_mse = np.min([mse_cur.mean(), best_mse])
-
-
-    # log_string(f'Cls correct [{cls_mean.mean()}, {best_cls}] {cls_mean}')
-    print(f'MSE: [{mse_cur.mean()}/ {best_mse}] {mse_cur}')
-
-    # instance_acc = np.mean(mean_correct)
-    # instance_acc = rmse_r_mean.mean()
+    y_list = np.array(y_list)
+    pred_list = np.array(pred_list)
 
     model.train()
     # return instance_acc
-    return mse_cur.mean()
+    return y_list, pred_list
 
 def main(args):
     # def log_string(str):
@@ -201,7 +194,27 @@ def main(args):
 
 
     with torch.no_grad():
-        instance_acc = test(classifier.eval(), testDataLoader, exp_dir, criterion, None, 0)
+        y_train, pred_train = test(classifier.eval(), trainDataLoader, exp_dir, criterion, None, 0, args.is_taper)
+        y_test, pred_test = test(classifier.eval(), testDataLoader, exp_dir, criterion, None, 0, args.is_taper)
+
+        np.save(str(exp_dir)+'/y_test.npy', y_test)
+        np.save(str(exp_dir)+'/pred_test.npy', pred_test)
+
+        plt.scatter(y_train, pred_train, marker='s', facecolors='none', edgecolors='k', label='Train', s=80)
+        plt.scatter(y_test, pred_test, marker='o', facecolors='none', edgecolors='b', label='Test', s=80)
+
+
+        print('metric is: ', mean_squared_error(pred_test.flatten(), y_test.flatten()),
+              pearsonr(pred_test.flatten(), y_test.flatten()))
+
+        plt.xlabel('Ground Truth', fontsize=16)
+        plt.ylabel('Prediction', fontsize=16)
+        plt.subplots_adjust(top=0.9, right=0.95)
+        plt.legend()
+        # plt.show()
+        plt.savefig(str(exp_dir) + '/rst.png', dpi=400)
+
+
 
 
 if __name__ == '__main__':

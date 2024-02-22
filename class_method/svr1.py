@@ -41,13 +41,14 @@ def load_data(DataLoader, is_taper):
 
 
 
-is_taper = 1
+is_taper = 0
 fft_train, y_train = load_data(trainDataLoader, is_taper)
 fft_test, y_test = load_data(testDataLoader, is_taper)
 
 
 # ‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’
-for ker in ['linear', 'poly', 'rbf', 'sigmoid']:
+# for ker in ['linear', 'poly', 'rbf', 'sigmoid']:
+for ker in ['poly']:
     svr = SVR(kernel=ker, epsilon=0.001)
     svr.fit(fft_train, y_train)
 
@@ -61,7 +62,7 @@ for ker in ['linear', 'poly', 'rbf', 'sigmoid']:
     print('train: ', mean_squared_error(pred_train, y_train), pearsonr(pred_train, y_train))
     print('test: ', mean_squared_error(pred_test, y_test), pearsonr(pred_test, y_test))
 
-    if ker=="rbf":
+    if ker=="poly":
         plt.scatter(y_train, pred_train, marker='s', facecolors='none', edgecolors='k', label='Train', s=80)
         plt.scatter(y_test, pred_test, marker='o', facecolors='none', edgecolors='b', label='Test', s=80)
 
@@ -72,8 +73,12 @@ for ker in ['linear', 'poly', 'rbf', 'sigmoid']:
 
         if is_taper:
             type_str = 'Taper'
+            plt.xlim(0, 0.7)
+            plt.ylim(0, 0.7)
         else:
             type_str = 'Wear'
+            plt.xlim(0, 2)
+            plt.ylim(0, 2)
         # plt.grid()
         # plt.show()
 
